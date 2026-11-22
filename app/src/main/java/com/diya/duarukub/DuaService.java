@@ -58,6 +58,8 @@ public class DuaService extends Service {
     private final Runnable brightTick = new Runnable() {
         @Override public void run() {
             applyBrightness(false);
+            // Guard: if the button got switched back to Google from the head unit settings, re-link it.
+            if (Prefs.btnEnabled(DuaService.this)) VoiceKey.ensure(DuaService.this);
             handler.postDelayed(this, 60_000L);
         }
     };

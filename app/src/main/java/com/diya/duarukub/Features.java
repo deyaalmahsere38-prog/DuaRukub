@@ -23,6 +23,7 @@ final class Features {
         // Dua: background service runs only when the dua feature is on.
         if (!Prefs.enabled(c)) DuaPlayer.stop(c);
         BrightAlarm.schedule(c);
+        VoiceKey.ensure(c);
         if (Prefs.serviceNeeded(c)) {
             DuaService.start(c, false);
         } else {

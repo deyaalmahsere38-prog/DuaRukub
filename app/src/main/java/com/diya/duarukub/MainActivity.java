@@ -136,6 +136,15 @@ public class MainActivity extends Activity {
         btnLabel.setTextSize(16);
         root.addView(btnLabel);
         refreshBtnLabel();
+        TextView linkStatus = new TextView(this);
+        linkStatus.setPadding(0, dp(6), 0, dp(6));
+        root.addView(linkStatus);
+        refreshLinkStatus(linkStatus);
+        button("اربط الكبسة بالتطبيق الآن", v -> {
+            boolean ok = VoiceKey.ensure(this);
+            refreshLinkStatus(linkStatus);
+            toast(ok ? "الكبسة مربوطة ✓" : "ما زبط الربط كامل، شوف السطر فوق");
+        });
         button("اختيار التطبيق اللي بتفتحه الكبسة", v -> pickApp());
         button("تفعيل لقط الكبسة (إمكانية الوصول)", v -> {
             try {
@@ -335,6 +344,15 @@ public class MainActivity extends Activity {
         e.setText(String.valueOf(value));
         root.addView(e);
         return e;
+    }
+
+    private void refreshLinkStatus(TextView t) {
+        String v = VoiceKey.read(this);
+        String where = VoiceKey.OURS.equals(v) ? "هالتطبيق ✓"
+                : (v != null && v.startsWith("com.google")) ? "Google" : (v == null ? "ما قدرت أقرأ" : v);
+        String assist = VoiceKey.assistantIsOurs(this) ? "✓" : "✗ (بدها ملف الإعداد من اللابتوب مرة وحدة)";
+        t.setText("الكبسة مربوطة بـ: " + where + "\nالمساعد الافتراضي بالنظام: " + assist
+                + "\nحماية تلقائية: إذا رجع حدا Google من إعدادات الشاشة، التطبيق بيرجّع الربط لحاله خلال دقيقة.");
     }
 
     private void refreshBrightStatus(TextView t) {

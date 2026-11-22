@@ -25,6 +25,7 @@ final class Prefs {
     static final String KEY_NIGHT_START = "night_start_min";
     static final String KEY_BRIGHT_ALT = "bright_alt";
     static final String KEY_BRIGHT_LAST = "bright_last";
+    static final String KEY_BRIGHT_LAST_TIME = "bright_last_time";
     static final String KEY_BTN_PKG = "btn_pkg";              // app the steering button opens
     static final String KEY_BTN_DOUBLE = "btn_double_google"; // quick 2nd press opens Google voice
     static final String KEY_BTN_LAST_PRESS = "btn_last_press";

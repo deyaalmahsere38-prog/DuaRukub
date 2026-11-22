@@ -166,6 +166,10 @@ public class MainActivity extends Activity {
                 Prefs.get(this).edit().putBoolean(Prefs.KEY_BRIGHT_ALT, on).apply());
         button("جرّب سطوع النهار", v -> Backlight.apply(this, parse(dayLv, 16), (ok, msg) -> toast(msg)));
         button("جرّب سطوع الليل", v -> Backlight.apply(this, parse(nightLv, 5), (ok, msg) -> toast(msg)));
+        TextView brightStatus = new TextView(this);
+        brightStatus.setPadding(0, dp(6), 0, dp(6));
+        root.addView(brightStatus);
+        refreshBrightStatus(brightStatus);
         button("حفظ جدول السطوع", v -> {
             Prefs.get(this).edit()
                     .putBoolean(Prefs.KEY_BRIGHT_ON, brightOn.isChecked())
@@ -177,8 +181,12 @@ public class MainActivity extends Activity {
                     .apply();
             Features.apply(this);
             if (Prefs.brightOn(this)) {
-                Backlight.apply(this, Backlight.scheduledLevel(this), (ok, msg) ->
-                        toast("انحفظ. " + (Backlight.isDay(this) ? "هلأ نهار: " : "هلأ ليل: ") + msg));
+                int lvNow = Backlight.scheduledLevel(this);
+                Backlight.apply(this, lvNow, (ok, msg) -> {
+                    if (ok) BrightAlarm.markApplied(this, lvNow);
+                    toast("انحفظ. " + (Backlight.isDay(this) ? "هلأ نهار: " : "هلأ ليل: ") + msg);
+                    refreshBrightStatus(brightStatus);
+                });
             } else {
                 toast("انحفظ");
             }
@@ -329,6 +337,18 @@ public class MainActivity extends Activity {
         return e;
     }
 
+    private void refreshBrightStatus(TextView t) {
+        String fmt = "%02d:%02d";
+        int ds = Prefs.dayStart(this), ns = Prefs.nightStart(this);
+        long lastT = Prefs.get(this).getLong(Prefs.KEY_BRIGHT_LAST_TIME, 0);
+        String last = lastT == 0 ? "لسا" :
+                android.text.format.DateFormat.format("HH:mm", lastT) + " (سطوع " + Prefs.get(this).getInt(Prefs.KEY_BRIGHT_LAST, -1) + ")";
+        t.setText("الجدول: نهار من " + String.format(java.util.Locale.ROOT, fmt, ds / 60, ds % 60)
+                + " لـ " + String.format(java.util.Locale.ROOT, fmt, ns / 60, ns % 60)
+                + "\nهلأ: " + (Backlight.isDay(this) ? "نهار" : "ليل") + " — آخر تطبيق: " + last
+                + (Prefs.brightOn(this) ? "" : "\n(الجدول مطفي)"));
+    }
+
     private EditText timeField(String label, int minutes) {
         EditText e = numberField(label, 0);
         e.setInputType(InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_TIME);
@@ -338,7 +358,9 @@ public class MainActivity extends Activity {
 
     private static int parseTime(EditText e, int fallback) {
         try {
-            String[] p = e.getText().toString().trim().split("[:.]");
+            String s = e.getText().toString().trim();
+            if (s.matches("\\d{3,4}")) s = s.substring(0, s.length() - 2) + ":" + s.substring(s.length() - 2);
+            String[] p = s.split("[:.]");
             int h = Integer.parseInt(p[0].trim());
             int m = p.length > 1 ? Integer.parseInt(p[1].trim()) : 0;
             if (h < 0 || h > 23 || m < 0 || m > 59) return fallback;

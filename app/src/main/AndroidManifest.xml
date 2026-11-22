@@ -104,6 +104,10 @@
         </service>
 
         <receiver
+            android:name=".BrightAlarm"
+            android:exported="false" />
+
+        <receiver
             android:name=".BootReceiver"
             android:exported="true">
             <intent-filter>

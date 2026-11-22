@@ -68,7 +68,7 @@ public class DuaService extends Service {
         int last = Prefs.get(this).getInt(Prefs.KEY_BRIGHT_LAST, -1);
         if (!force && level == last) return;
         Backlight.apply(this, level, (ok, msg) -> {
-            if (ok) Prefs.get(this).edit().putInt(Prefs.KEY_BRIGHT_LAST, level).apply();
+            if (ok) BrightAlarm.markApplied(this, level);
         });
     }
 
@@ -107,10 +107,15 @@ public class DuaService extends Service {
         f.addAction(Intent.ACTION_USER_PRESENT);
         registerReceiver(wakeReceiver, f);
         handler.post(brightTick);
+        BrightAlarm.schedule(this);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        // (Re)start the minute check and the exact alarm whenever settings are saved or the app starts.
+        handler.removeCallbacks(brightTick);
+        handler.post(brightTick);
+        BrightAlarm.schedule(this);
         if (intent != null) {
             boolean boot = intent.getBooleanExtra(EXTRA_FROM_BOOT, false) && Prefs.onBoot(this);
             boolean autostart = intent.getBooleanExtra(EXTRA_FROM_AUTOSTART, false);

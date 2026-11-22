@@ -10,8 +10,23 @@ android {
         applicationId 'com.diya.duarukub'
         minSdk 26
         targetSdk 30
-        versionCode 5
-        versionName "5.0"
+        versionCode 6
+        versionName "6.0"
+    }
+
+    signingConfigs {
+        fixed {
+            storeFile file('duarukub.keystore')
+            storePassword 'duarukub'
+            keyAlias 'duarukub'
+            keyPassword 'duarukub'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.fixed
+        }
     }
 
     compileOptions {

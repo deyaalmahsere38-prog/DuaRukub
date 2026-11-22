@@ -18,6 +18,13 @@ final class Prefs {
     static final String KEY_SPEED = "speed_kmh";
     static final String KEY_VOLUME = "volume_pct";       // 0 = leave volume as is
     static final String KEY_LAST = "last_played";
+    static final String KEY_BRIGHT_ON = "bright_on";
+    static final String KEY_BRIGHT_DAY = "bright_day";
+    static final String KEY_BRIGHT_NIGHT = "bright_night";
+    static final String KEY_DAY_START = "day_start_min";
+    static final String KEY_NIGHT_START = "night_start_min";
+    static final String KEY_BRIGHT_ALT = "bright_alt";
+    static final String KEY_BRIGHT_LAST = "bright_last";
     static final String KEY_BTN_PKG = "btn_pkg";              // app the steering button opens
     static final String KEY_BTN_DOUBLE = "btn_double_google"; // quick 2nd press opens Google voice
     static final String KEY_BTN_LAST_PRESS = "btn_last_press";
@@ -45,6 +52,13 @@ final class Prefs {
     static int speedKmh(Context c) { return get(c).getInt(KEY_SPEED, 10); }
     static int volumePct(Context c) { return get(c).getInt(KEY_VOLUME, 0); }
     static long lastPlayed(Context c) { return get(c).getLong(KEY_LAST, 0L); }
+    static boolean brightOn(Context c) { return master(c) && get(c).getBoolean(KEY_BRIGHT_ON, false); }
+    static int dayLevel(Context c) { return get(c).getInt(KEY_BRIGHT_DAY, 16); }
+    static int nightLevel(Context c) { return get(c).getInt(KEY_BRIGHT_NIGHT, 5); }
+    static int dayStart(Context c) { return get(c).getInt(KEY_DAY_START, 6 * 60); }
+    static int nightStart(Context c) { return get(c).getInt(KEY_NIGHT_START, 17 * 60 + 30); }
+    /** Service must run if the dua or the brightness schedule is on. */
+    static boolean serviceNeeded(Context c) { return enabled(c) || brightOn(c); }
     static String btnPkg(Context c) { return get(c).getString(KEY_BTN_PKG, null); }
     static boolean btnDouble(Context c) { return get(c).getBoolean(KEY_BTN_DOUBLE, true); }
     static String btnLastAction(Context c) { return get(c).getString(KEY_BTN_LAST_ACTION, null); }

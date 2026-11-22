@@ -149,6 +149,41 @@ public class MainActivity extends Activity {
         dbl.setOnCheckedChangeListener((b, on) ->
                 Prefs.get(this).edit().putBoolean(Prefs.KEY_BTN_DOUBLE, on).apply());
 
+        // ---- Brightness schedule ----
+        header("السطوع حسب الوقت");
+        Switch brightOn = new Switch(this);
+        brightOn.setText("تفعيل جدول السطوع");
+        brightOn.setTextSize(17);
+        brightOn.setChecked(Prefs.get(this).getBoolean(Prefs.KEY_BRIGHT_ON, false));
+        root.addView(brightOn);
+        EditText dayLv = numberField("سطوع النهار (0 - 20)", Prefs.dayLevel(this));
+        EditText nightLv = numberField("سطوع الليل (0 - 20)", Prefs.nightLevel(this));
+        EditText dayStart = timeField("بداية النهار (مثلاً 06:00)", Prefs.dayStart(this));
+        EditText nightStart = timeField("بداية الليل (مثلاً 17:30)", Prefs.nightStart(this));
+        CheckBox alt = check("طريقة إرسال بديلة (جرّبها إذا التجربة ما غيّرت إشي)",
+                Prefs.get(this).getBoolean(Prefs.KEY_BRIGHT_ALT, false));
+        alt.setOnCheckedChangeListener((b, on) ->
+                Prefs.get(this).edit().putBoolean(Prefs.KEY_BRIGHT_ALT, on).apply());
+        button("جرّب سطوع النهار", v -> Backlight.apply(this, parse(dayLv, 16), (ok, msg) -> toast(msg)));
+        button("جرّب سطوع الليل", v -> Backlight.apply(this, parse(nightLv, 5), (ok, msg) -> toast(msg)));
+        button("حفظ جدول السطوع", v -> {
+            Prefs.get(this).edit()
+                    .putBoolean(Prefs.KEY_BRIGHT_ON, brightOn.isChecked())
+                    .putInt(Prefs.KEY_BRIGHT_DAY, Math.min(20, parse(dayLv, 16)))
+                    .putInt(Prefs.KEY_BRIGHT_NIGHT, Math.min(20, parse(nightLv, 5)))
+                    .putInt(Prefs.KEY_DAY_START, parseTime(dayStart, 6 * 60))
+                    .putInt(Prefs.KEY_NIGHT_START, parseTime(nightStart, 17 * 60 + 30))
+                    .putInt(Prefs.KEY_BRIGHT_LAST, -1)
+                    .apply();
+            Features.apply(this);
+            if (Prefs.brightOn(this)) {
+                Backlight.apply(this, Backlight.scheduledLevel(this), (ok, msg) ->
+                        toast("انحفظ. " + (Backlight.isDay(this) ? "هلأ نهار: " : "هلأ ليل: ") + msg));
+            } else {
+                toast("انحفظ");
+            }
+        });
+
         // ---- Brightness diagnostics ----
         header("السطوع");
         button("فحص السطوع (تقرير)", v -> startActivity(new Intent(this, DiagActivity.class)));
@@ -292,6 +327,25 @@ public class MainActivity extends Activity {
         e.setText(String.valueOf(value));
         root.addView(e);
         return e;
+    }
+
+    private EditText timeField(String label, int minutes) {
+        EditText e = numberField(label, 0);
+        e.setInputType(InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_TIME);
+        e.setText(String.format(java.util.Locale.ROOT, "%02d:%02d", minutes / 60, minutes % 60));
+        return e;
+    }
+
+    private static int parseTime(EditText e, int fallback) {
+        try {
+            String[] p = e.getText().toString().trim().split("[:.]");
+            int h = Integer.parseInt(p[0].trim());
+            int m = p.length > 1 ? Integer.parseInt(p[1].trim()) : 0;
+            if (h < 0 || h > 23 || m < 0 || m > 59) return fallback;
+            return h * 60 + m;
+        } catch (Exception ex) {
+            return fallback;
+        }
     }
 
     private static int parse(EditText e, int fallback) {

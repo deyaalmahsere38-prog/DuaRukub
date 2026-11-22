@@ -21,10 +21,10 @@ final class Features {
                 PackageManager.DONT_KILL_APP);
 
         // Dua: background service runs only when the dua feature is on.
-        if (Prefs.enabled(c)) {
+        if (!Prefs.enabled(c)) DuaPlayer.stop(c);
+        if (Prefs.serviceNeeded(c)) {
             DuaService.start(c, false);
         } else {
-            DuaPlayer.stop(c);
             c.stopService(new Intent(c, DuaService.class));
         }
     }

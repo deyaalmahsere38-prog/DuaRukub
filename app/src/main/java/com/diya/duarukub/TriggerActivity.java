@@ -11,7 +11,7 @@ public class TriggerActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (Prefs.enabled(this)) DuaService.startFromAutostart(this);
+        if (Prefs.serviceNeeded(this)) DuaService.startFromAutostart(this);
         finish();
         overridePendingTransition(0, 0);
     }

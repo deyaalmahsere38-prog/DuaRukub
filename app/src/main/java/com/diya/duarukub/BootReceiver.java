@@ -9,7 +9,7 @@ public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         Features.apply(context);
-        if (!Prefs.enabled(context)) return;
+        if (!Prefs.serviceNeeded(context)) return;
         boolean isBoot = !Intent.ACTION_MY_PACKAGE_REPLACED.equals(intent.getAction());
         DuaService.start(context, isBoot);
     }

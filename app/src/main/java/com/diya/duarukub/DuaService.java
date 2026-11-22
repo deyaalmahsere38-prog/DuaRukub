@@ -33,6 +33,8 @@ public class DuaService extends Service {
     private final BroadcastReceiver wakeReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            // Re-apply brightness a few seconds after wake: the head unit restores its own value on wake.
+            handler.postDelayed(() -> applyBrightness(true), 5000L);
             if (Prefs.onScreen(context)) onWake();
         }
     };
@@ -51,6 +53,24 @@ public class DuaService extends Service {
     };
 
     private final Runnable gpsTimeout = this::stopGps;
+
+    /** Checks every minute whether the day/night brightness period changed. */
+    private final Runnable brightTick = new Runnable() {
+        @Override public void run() {
+            applyBrightness(false);
+            handler.postDelayed(this, 60_000L);
+        }
+    };
+
+    private void applyBrightness(boolean force) {
+        if (!Prefs.brightOn(this)) return;
+        int level = Backlight.scheduledLevel(this);
+        int last = Prefs.get(this).getInt(Prefs.KEY_BRIGHT_LAST, -1);
+        if (!force && level == last) return;
+        Backlight.apply(this, level, (ok, msg) -> {
+            if (ok) Prefs.get(this).edit().putInt(Prefs.KEY_BRIGHT_LAST, level).apply();
+        });
+    }
 
     static void start(Context c, boolean fromBoot) {
         Intent i = new Intent(c, DuaService.class);
@@ -86,6 +106,7 @@ public class DuaService extends Service {
         f.addAction(Intent.ACTION_SCREEN_ON);
         f.addAction(Intent.ACTION_USER_PRESENT);
         registerReceiver(wakeReceiver, f);
+        handler.post(brightTick);
     }
 
     @Override
@@ -93,7 +114,10 @@ public class DuaService extends Service {
         if (intent != null) {
             boolean boot = intent.getBooleanExtra(EXTRA_FROM_BOOT, false) && Prefs.onBoot(this);
             boolean autostart = intent.getBooleanExtra(EXTRA_FROM_AUTOSTART, false);
-            if (boot || autostart) onWake();
+            if (boot || autostart) {
+                handler.postDelayed(() -> applyBrightness(true), 5000L);
+                onWake();
+            }
         }
         return START_STICKY;
     }
@@ -133,6 +157,7 @@ public class DuaService extends Service {
 
     @Override
     public void onDestroy() {
+        handler.removeCallbacks(brightTick);
         stopGps();
         try { unregisterReceiver(wakeReceiver); } catch (Exception ignored) { }
         super.onDestroy();

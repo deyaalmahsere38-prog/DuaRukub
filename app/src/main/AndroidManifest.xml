@@ -51,6 +51,10 @@
             android:noHistory="true"
             android:taskAffinity="com.diya.duarukub.button">
             <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
                 <action android:name="android.intent.action.VOICE_COMMAND" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -85,6 +89,19 @@
             android:name=".DuaService"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <service
+            android:name=".KeyService"
+            android:exported="false"
+            android:label="كبسة الستيرنج - دعاء الركوب"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/key_service" />
+        </service>
 
         <receiver
             android:name=".BootReceiver"

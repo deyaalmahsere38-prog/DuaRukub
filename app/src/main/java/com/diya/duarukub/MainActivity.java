@@ -137,6 +137,14 @@ public class MainActivity extends Activity {
         root.addView(btnLabel);
         refreshBtnLabel();
         button("اختيار التطبيق اللي بتفتحه الكبسة", v -> pickApp());
+        button("تفعيل لقط الكبسة (إمكانية الوصول)", v -> {
+            try {
+                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+                toast("اختار «كبسة الستيرنج - دعاء الركوب» وفعّله");
+            } catch (Exception e) {
+                toast("ما قدرت أفتح الإعدادات");
+            }
+        });
         CheckBox dbl = check("كبستين ورا بعض = يفتح Google بدل التطبيق", Prefs.btnDouble(this));
         dbl.setOnCheckedChangeListener((b, on) ->
                 Prefs.get(this).edit().putBoolean(Prefs.KEY_BTN_DOUBLE, on).apply());

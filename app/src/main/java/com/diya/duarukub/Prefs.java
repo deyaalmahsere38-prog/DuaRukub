@@ -26,6 +26,11 @@ final class Prefs {
     static final String KEY_BRIGHT_ALT = "bright_alt";
     static final String KEY_BRIGHT_LAST = "bright_last";
     static final String KEY_BRIGHT_LAST_TIME = "bright_last_time";
+    static final String KEY_SUN_AUTO = "sun_auto";
+    static final String KEY_SUNRISE_OFFSET = "sunrise_offset";
+    static final String KEY_SUNSET_OFFSET = "sunset_offset";
+    static final String KEY_LAT = "lat";
+    static final String KEY_LON = "lon";
     static final String KEY_BTN_PKG = "btn_pkg";              // app the steering button opens
     static final String KEY_BTN_DOUBLE = "btn_double_google"; // quick 2nd press opens Google voice
     static final String KEY_BTN_LAST_PRESS = "btn_last_press";
@@ -56,8 +61,29 @@ final class Prefs {
     static boolean brightOn(Context c) { return master(c) && get(c).getBoolean(KEY_BRIGHT_ON, false); }
     static int dayLevel(Context c) { return get(c).getInt(KEY_BRIGHT_DAY, 16); }
     static int nightLevel(Context c) { return get(c).getInt(KEY_BRIGHT_NIGHT, 5); }
-    static int dayStart(Context c) { return get(c).getInt(KEY_DAY_START, 6 * 60); }
-    static int nightStart(Context c) { return get(c).getInt(KEY_NIGHT_START, 17 * 60 + 30); }
+    static boolean sunAuto(Context c) { return get(c).getBoolean(KEY_SUN_AUTO, true); }
+    static int dayStart(Context c) { return dayStartFor(c, java.util.Calendar.getInstance()); }
+    static int nightStart(Context c) { return nightStartFor(c, java.util.Calendar.getInstance()); }
+
+    /** Start of daytime for a given date: sunrise (+offset) when automatic, else the fixed time. */
+    static int dayStartFor(Context c, java.util.Calendar day) {
+        if (!sunAuto(c)) return get(c).getInt(KEY_DAY_START, 6 * 60);
+        double[] p = SunTimes.position(c);
+        int m = SunTimes.compute(p[0], p[1], day, true);
+        if (m < 0) return get(c).getInt(KEY_DAY_START, 6 * 60);
+        return wrap(m + get(c).getInt(KEY_SUNRISE_OFFSET, 0));
+    }
+
+    /** Start of night for a given date: sunset (+offset) when automatic, else the fixed time. */
+    static int nightStartFor(Context c, java.util.Calendar day) {
+        if (!sunAuto(c)) return get(c).getInt(KEY_NIGHT_START, 17 * 60 + 30);
+        double[] p = SunTimes.position(c);
+        int m = SunTimes.compute(p[0], p[1], day, false);
+        if (m < 0) return get(c).getInt(KEY_NIGHT_START, 17 * 60 + 30);
+        return wrap(m + get(c).getInt(KEY_SUNSET_OFFSET, 0));
+    }
+
+    private static int wrap(int m) { m %= 1440; return m < 0 ? m + 1440 : m; }
     /** Service must run if the dua or the brightness schedule is on. */
     static boolean serviceNeeded(Context c) { return enabled(c) || brightOn(c); }
     static String btnPkg(Context c) { return get(c).getString(KEY_BTN_PKG, null); }

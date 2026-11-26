@@ -45,19 +45,27 @@ public class BrightAlarm extends BroadcastReceiver {
         if (am == null) return;
         am.cancel(pi);
         if (!Prefs.brightOn(c)) return;
-        long next = Math.min(nextAt(Prefs.dayStart(c)), nextAt(Prefs.nightStart(c)));
+        long next = Long.MAX_VALUE;
+        long now = System.currentTimeMillis();
+        for (int d = 0; d <= 1; d++) {
+            Calendar day = Calendar.getInstance();
+            day.add(Calendar.DAY_OF_YEAR, d);
+            for (int m : new int[]{Prefs.dayStartFor(c, day), Prefs.nightStartFor(c, day)}) {
+                long at = at(day, m);
+                if (at > now && at < next) next = at;
+            }
+        }
+        if (next == Long.MAX_VALUE) return;
         am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next, pi);
     }
 
-    /** Next time (ms) the clock reaches the given minutes-since-midnight, plus 3 s margin. */
-    private static long nextAt(int minutes) {
-        Calendar cal = Calendar.getInstance();
-        long now = cal.getTimeInMillis();
+    /** The given minutes-since-midnight on that day, plus 3 s margin. */
+    private static long at(Calendar day, int minutes) {
+        Calendar cal = (Calendar) day.clone();
         cal.set(Calendar.HOUR_OF_DAY, minutes / 60);
         cal.set(Calendar.MINUTE, minutes % 60);
         cal.set(Calendar.SECOND, 3);
         cal.set(Calendar.MILLISECOND, 0);
-        if (cal.getTimeInMillis() <= now) cal.add(Calendar.DAY_OF_YEAR, 1);
         return cal.getTimeInMillis();
     }
 }

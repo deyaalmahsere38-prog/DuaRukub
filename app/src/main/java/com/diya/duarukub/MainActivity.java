@@ -167,8 +167,13 @@ public class MainActivity extends Activity {
         root.addView(brightOn);
         EditText dayLv = numberField("سطوع النهار (0 - 20)", Prefs.dayLevel(this));
         EditText nightLv = numberField("سطوع الليل (0 - 20)", Prefs.nightLevel(this));
-        EditText dayStart = timeField("بداية النهار (مثلاً 06:00)", Prefs.dayStart(this));
-        EditText nightStart = timeField("بداية الليل (مثلاً 17:30)", Prefs.nightStart(this));
+        CheckBox sunAuto = check("حسب الشروق والغروب الحقيقي (تلقائي كل يوم)", Prefs.sunAuto(this));
+        EditText riseOff = signedField("تبديل للنهار بعد الشروق بـ (دقائق، سالب = قبل)",
+                Prefs.get(this).getInt(Prefs.KEY_SUNRISE_OFFSET, 0));
+        EditText setOff = signedField("تبديل لليل بعد الغروب بـ (دقائق، سالب = قبل)",
+                Prefs.get(this).getInt(Prefs.KEY_SUNSET_OFFSET, 0));
+        EditText dayStart = timeField("بداية النهار اليدوية (إذا التلقائي مطفي)", Prefs.get(this).getInt(Prefs.KEY_DAY_START, 6 * 60));
+        EditText nightStart = timeField("بداية الليل اليدوية (إذا التلقائي مطفي)", Prefs.get(this).getInt(Prefs.KEY_NIGHT_START, 17 * 60 + 30));
         CheckBox alt = check("طريقة إرسال بديلة (جرّبها إذا التجربة ما غيّرت إشي)",
                 Prefs.get(this).getBoolean(Prefs.KEY_BRIGHT_ALT, false));
         alt.setOnCheckedChangeListener((b, on) ->
@@ -184,6 +189,9 @@ public class MainActivity extends Activity {
                     .putBoolean(Prefs.KEY_BRIGHT_ON, brightOn.isChecked())
                     .putInt(Prefs.KEY_BRIGHT_DAY, Math.min(20, parse(dayLv, 16)))
                     .putInt(Prefs.KEY_BRIGHT_NIGHT, Math.min(20, parse(nightLv, 5)))
+                    .putBoolean(Prefs.KEY_SUN_AUTO, sunAuto.isChecked())
+                    .putInt(Prefs.KEY_SUNRISE_OFFSET, parseSigned(riseOff))
+                    .putInt(Prefs.KEY_SUNSET_OFFSET, parseSigned(setOff))
                     .putInt(Prefs.KEY_DAY_START, parseTime(dayStart, 6 * 60))
                     .putInt(Prefs.KEY_NIGHT_START, parseTime(nightStart, 17 * 60 + 30))
                     .putInt(Prefs.KEY_BRIGHT_LAST, -1)
@@ -361,7 +369,21 @@ public class MainActivity extends Activity {
         long lastT = Prefs.get(this).getLong(Prefs.KEY_BRIGHT_LAST_TIME, 0);
         String last = lastT == 0 ? "لسا" :
                 android.text.format.DateFormat.format("HH:mm", lastT) + " (سطوع " + Prefs.get(this).getInt(Prefs.KEY_BRIGHT_LAST, -1) + ")";
-        t.setText("الجدول: نهار من " + String.format(java.util.Locale.ROOT, fmt, ds / 60, ds % 60)
+        String sunInfo = "";
+        if (Prefs.sunAuto(this)) {
+            double[] p = SunTimes.position(this);
+            java.util.Calendar today = java.util.Calendar.getInstance();
+            int sr = SunTimes.compute(p[0], p[1], today, true), ss = SunTimes.compute(p[0], p[1], today, false);
+            int offMin = java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60000;
+            String src = p[2] == 1 ? "GPS" : p[2] == 2 ? "آخر موقع محفوظ" : "عمّان (لسا ما في GPS)";
+            boolean inJordan = p[0] > 29 && p[0] < 33.5 && p[1] > 34.8 && p[1] < 39.5;
+            sunInfo = "الشروق اليوم " + String.format(java.util.Locale.ROOT, fmt, sr / 60, sr % 60)
+                    + " — الغروب " + String.format(java.util.Locale.ROOT, fmt, ss / 60, ss % 60)
+                    + "\nالموقع: " + src + " — توقيت الشاشة: UTC" + (offMin >= 0 ? "+" : "") + (offMin / 60.0)
+                    + (inJordan && offMin != 180 ? "\n⚠ توقيت الشاشة مش +3 (توقيت الأردن). صلّح المنطقة الزمنية بإعدادات الشاشة، وإلا كل الأوقات رح تطلع غلط." : "")
+                    + "\n";
+        }
+        t.setText(sunInfo + "الجدول: نهار من " + String.format(java.util.Locale.ROOT, fmt, ds / 60, ds % 60)
                 + " لـ " + String.format(java.util.Locale.ROOT, fmt, ns / 60, ns % 60)
                 + "\nهلأ: " + (Backlight.isDay(this) ? "نهار" : "ليل") + " — آخر تطبيق: " + last
                 + (Prefs.brightOn(this) ? "" : "\n(الجدول مطفي)"));
@@ -372,6 +394,20 @@ public class MainActivity extends Activity {
         e.setInputType(InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_TIME);
         e.setText(String.format(java.util.Locale.ROOT, "%02d:%02d", minutes / 60, minutes % 60));
         return e;
+    }
+
+    private EditText signedField(String label, int value) {
+        EditText e = numberField(label, value);
+        e.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        return e;
+    }
+
+    private static int parseSigned(EditText e) {
+        try {
+            return Math.max(-180, Math.min(180, Integer.parseInt(e.getText().toString().trim())));
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
     }
 
     private static int parseTime(EditText e, int fallback) {
